@@ -419,6 +419,16 @@
             white-space: pre-wrap;
         }
 
+        .storySpeakerLabel {
+            width: 100%;
+            margin: 2px 0 6px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #5D4037;
+            text-align: center;
+            line-height: 1.3;
+        }
+
         .storyDialog.typewriter-cursor::after {
             content: '▌';
             animation: blink 0.9s step-end infinite;
@@ -667,7 +677,7 @@
 
             <div class="storyStep" id="introStepMalena">
                 <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
-                <div class="storyDialog" id="introMalenaQuestion">Princesa Malena, ¿estás lista para comenzar la aventura?</div>
+                <div class="storyDialog" id="introMalenaQuestion"></div>
                 <div class="storyRowPlayer">
                     <img class="storyPortrait small" src="Princesa.png" alt="Princesa Malena">
                     <input type="text" class="storyTextField" id="malenaInput" placeholder="Escribe aquí y pulsa Enviar" autocomplete="off">
@@ -679,7 +689,7 @@
 
             <div class="storyStep" id="introStepLeo">
                 <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
-                <div class="storyDialog" id="introLeoQuestion">Príncipe Leo, ¿estás listo para comenzar la aventura?</div>
+                <div class="storyDialog" id="introLeoQuestion"></div>
                 <div class="storyRowPlayer">
                     <img class="storyPortrait small" src="Príncipe.png" alt="Príncipe Leo">
                     <input type="text" class="storyTextField" id="leoInput" placeholder="Escribe aquí y pulsa Enviar" autocomplete="off">
@@ -713,15 +723,24 @@
     <!-- Victoria final (varios pasos) -->
     <div id="victoryOverlay" class="modal">
         <div class="storyPanel">
+            <div class="storyStep" id="victoryStepPrelude">
+                <img class="storyPortrait" src="Personaje.png" alt="Guía" onerror="this.onerror=null;this.src='Personaje 1.png'">
+                <div class="storyDialog" id="victoryPreludeDialog"></div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="victoryPreludeContinue">Continuar</button>
+                </div>
+            </div>
             <div class="storyStep" id="victoryStepQueen">
-                <img class="storyPortrait" src="Reina.png" alt="Reina">
+                <img class="storyPortrait" src="Reina.png" alt="Duquesa Mel">
+                <p class="storySpeakerLabel">La Duquesa Mel dice:</p>
                 <div class="storyDialog" id="victoryQueenDialog"></div>
                 <div class="storyActions">
                     <button type="button" class="modalButton" id="victoryQueenContinue">Continuar</button>
                 </div>
             </div>
             <div class="storyStep" id="victoryStepKing">
-                <img class="storyPortrait" src="Rey.png" alt="Rey">
+                <img class="storyPortrait" src="Rey.png" alt="Duque Dan">
+                <p class="storySpeakerLabel">El Duque Dan dice:</p>
                 <div class="storyDialog" id="victoryKingDialog"></div>
                 <div class="storyActions">
                     <button type="button" class="modalButton" id="victoryKingContinue">Continuar</button>
@@ -740,7 +759,7 @@
     <script>
         const INTRO_WELCOME_TEXT =
             '¡Bienvenidos, príncipes!\n' +
-            'Nos honra que hayan aceptado este llamado. Los reyes han desaparecido y solo vuestra ayuda puede traerlos de regreso.\n' +
+            'Nos honra que hayan aceptado este llamado. Los Duques del reino han desaparecido y solo vuestra ayuda puede traerlos de regreso.\n' +
             'Necesitamos forjar las 5 gemas mágicas para lograrlo.\n' +
             'Cuéntenme, ¿ya tienen la planta mágica lista?';
 
@@ -751,8 +770,11 @@
             '3) Si aciertas, la barra sube. Si te equivocas, la barra baja mucho.\n\n' +
             '4) La barra también baja sola si tardas demasiado: ¡decide rápido!\n\n' +
             '5) Si la barra llega a cero, repetirás el mismo nivel. No pasa nada: inténtalo otra vez.\n\n' +
-            '6) Hay 5 niveles y 5 gemas. Al terminar el último nivel, habrás ayudado a salvar el reino.\n\n' +
+            '6) Hay 5 niveles y 5 gemas. Al terminar el último nivel, salvarás a los Duques y finalmente el reino.\n\n' +
             '¡Mucha suerte, príncipes!';
+
+        const VICTORY_PRELUDE_TEXT =
+            '¡Felicitaciones, honorables y valientes!, hemos obtenido las 5 gemas preciosas para recuperar a los Duques. El reino está en deuda y los duques los quieren saludar:';
 
         const VICTORY_QUEEN_TEXT =
             '¡Gracias, mis príncipes! Su honor y valentía nos han permitido regresar.';
@@ -763,6 +785,12 @@
         const VICTORY_MENTOR_TEXT =
             '¡Gracias, príncipes, han salvado el reino!\n' +
             'Recuerden que lo más importante en este mundo es cuidar de la naturaleza, cuidar de su familia, cuidar de los suyos y cuidar de ustedes mismos. ¡Nos vemos pronto en otra nueva aventura!';
+
+        const INTRO_MALENA_TEXT =
+            'Princesa Malena, ¿estás lista para comenzar la aventura?';
+
+        const INTRO_LEO_TEXT =
+            'Príncipe Leo, ¿estás listo para comenzar la aventura?';
 
         let typewriterTimer = null;
         let typewriterCompleteCallback = null;
@@ -913,15 +941,34 @@
         const leoSendBtn = document.getElementById('leoSendBtn');
         const beginGameBtn = document.getElementById('beginGameBtn');
         const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryStepPrelude = document.getElementById('victoryStepPrelude');
         const victoryStepQueen = document.getElementById('victoryStepQueen');
         const victoryStepKing = document.getElementById('victoryStepKing');
         const victoryStepMentor = document.getElementById('victoryStepMentor');
+        const victoryPreludeDialog = document.getElementById('victoryPreludeDialog');
         const victoryQueenDialog = document.getElementById('victoryQueenDialog');
         const victoryKingDialog = document.getElementById('victoryKingDialog');
         const victoryMentorDialog = document.getElementById('victoryMentorDialog');
+        const victoryPreludeContinue = document.getElementById('victoryPreludeContinue');
         const victoryQueenContinue = document.getElementById('victoryQueenContinue');
         const victoryKingContinue = document.getElementById('victoryKingContinue');
         const victoryFinishBtn = document.getElementById('victoryFinishBtn');
+        const introMalenaQuestion = document.getElementById('introMalenaQuestion');
+        const introLeoQuestion = document.getElementById('introLeoQuestion');
+
+        function runMalenaQuestionTypewriter() {
+            introMalenaQuestion.textContent = '';
+            startTypewriter(introMalenaQuestion, INTRO_MALENA_TEXT, 22, () => {
+                malenaInput.focus();
+            });
+        }
+
+        function runLeoQuestionTypewriter() {
+            introLeoQuestion.textContent = '';
+            startTypewriter(introLeoQuestion, INTRO_LEO_TEXT, 22, () => {
+                leoInput.focus();
+            });
+        }
 
         const colorMap = {
             'amarillo': '#FFD700',
@@ -995,9 +1042,20 @@
         }
 
         function resetVictorySteps() {
+            victoryStepPrelude.classList.remove('active');
             victoryStepQueen.classList.remove('active');
             victoryStepKing.classList.remove('active');
             victoryStepMentor.classList.remove('active');
+        }
+
+        function showVictoryPrelude() {
+            resetVictorySteps();
+            victoryOverlay.classList.add('show');
+            victoryStepPrelude.classList.add('active');
+            victoryPreludeContinue.disabled = true;
+            startTypewriter(victoryPreludeDialog, VICTORY_PRELUDE_TEXT, 22, () => {
+                victoryPreludeContinue.disabled = false;
+            });
         }
 
         function showVictoryQueen() {
@@ -1224,7 +1282,7 @@
             const level = config.levels[gameState.currentLevel];
             
             if (gameState.currentLevel === 4) {
-                showVictoryQueen();
+                showVictoryPrelude();
             } else {
                 modalTitle.textContent = '¡Nivel Completado!';
                 modalText.textContent = `¡Has forjado la ${level.gemImage.replace('.png', '')}! Avanzas al nivel ${gameState.currentLevel + 2}.`;
@@ -1331,22 +1389,41 @@
                 skipTypewriterToEnd(introWelcomeDialog, INTRO_WELCOME_TEXT);
                 setIntroStep('malena');
                 malenaInput.value = '';
-                malenaInput.focus();
+                runMalenaQuestionTypewriter();
             });
 
             malenaSendBtn.addEventListener('click', () => {
+                skipTypewriterToEnd(introMalenaQuestion, INTRO_MALENA_TEXT);
                 setIntroStep('leo');
                 leoInput.value = '';
-                leoInput.focus();
+                runLeoQuestionTypewriter();
             });
 
             leoSendBtn.addEventListener('click', () => {
+                skipTypewriterToEnd(introLeoQuestion, INTRO_LEO_TEXT);
                 showIntroRulesTypewriter();
             });
 
             beginGameBtn.addEventListener('click', () => {
                 skipTypewriterToEnd(introRulesDialog, INTRO_RULES_TEXT);
                 finishIntroAndStartGame();
+            });
+
+            victoryPreludeContinue.addEventListener('click', () => {
+                if (victoryPreludeContinue.disabled) {
+                    skipTypewriterToEnd(victoryPreludeDialog, VICTORY_PRELUDE_TEXT);
+                    victoryPreludeContinue.disabled = false;
+                    return;
+                }
+                cancelTypewriter();
+                showVictoryQueen();
+            });
+
+            victoryPreludeDialog.addEventListener('click', () => {
+                if (victoryStepPrelude.classList.contains('active')) {
+                    skipTypewriterToEnd(victoryPreludeDialog, VICTORY_PRELUDE_TEXT);
+                    victoryPreludeContinue.disabled = false;
+                }
             });
 
             victoryQueenContinue.addEventListener('click', () => {
@@ -1385,6 +1462,18 @@
             introRulesDialog.addEventListener('click', () => {
                 if (introStepRules.classList.contains('active')) {
                     skipTypewriterToEnd(introRulesDialog, INTRO_RULES_TEXT);
+                }
+            });
+
+            introMalenaQuestion.addEventListener('click', () => {
+                if (introStepMalena.classList.contains('active')) {
+                    skipTypewriterToEnd(introMalenaQuestion, INTRO_MALENA_TEXT);
+                }
+            });
+
+            introLeoQuestion.addEventListener('click', () => {
+                if (introStepLeo.classList.contains('active')) {
+                    skipTypewriterToEnd(introLeoQuestion, INTRO_LEO_TEXT);
                 }
             });
 
