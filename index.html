@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Forjador de Gemas - Juego de Minado</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+        }
+
+        #gameContainer {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-image: url('Fondo.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        #gameContainer.intro-active #topPanel,
+        #gameContainer.intro-active #levelIndicator,
+        #gameContainer.intro-active #gameArea,
+        #gameContainer.intro-active #startButton {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Panel superior con personaje y gema */
+        #topPanel {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            z-index: 10;
+        }
+
+        #characterContainer {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            flex-shrink: 0;
+        }
+
+        #characterImg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        #speechBubble {
+            position: absolute;
+            left: 80px;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 8px 12px;
+            min-width: 140px;
+            max-width: 180px;
+            border: 3px solid #8B6914;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        #speechBubble::before {
+            content: '';
+            position: absolute;
+            left: -12px;
+            top: 15px;
+            border-width: 8px 12px 8px 0;
+            border-style: solid;
+            border-color: transparent #8B6914 transparent transparent;
+        }
+
+        #speechBubble.show {
+            opacity: 1;
+        }
+
+        #speechText {
+            font-size: 14px;
+            font-weight: bold;
+            color: #3E2723;
+            text-align: center;
+        }
+
+        #gemDisplay {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+
+        #gemImg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+        }
+
+        #gemGlow {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.1s;
+            z-index: 1;
+            box-shadow: 0 0 30px currentColor;
+        }
+
+        #gemGlow.active {
+            opacity: 0.8;
+        }
+
+        /* Área central con barra circular y círculos */
+        #gameArea {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(85vw, 85vh);
+            height: min(85vw, 85vh);
+            max-width: 400px;
+            max-height: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5;
+        }
+
+        #powerRing {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #circlesContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .colorCircle {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 3px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transform-origin: center;
+        }
+
+        .colorCircle:active {
+            transform: scale(0.9);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* Botón iniciar */
+        #startButton {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border: 4px solid #8B6914;
+            border-radius: 50px;
+            color: #3E2723;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 15;
+            box-shadow: 0 6px 0 #6B4F1A, 0 8px 15px rgba(0,0,0,0.3);
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #startButton:active {
+            transform: translateX(-50%) translateY(4px);
+            box-shadow: 0 2px 0 #6B4F1A, 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        #startButton:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* Mensajes modales */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 12px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modalContent {
+            background: linear-gradient(135deg, #FFF8E1, #FFE0B2);
+            padding: 30px 25px;
+            border-radius: 30px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+            border: 5px solid #FFD700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modalTitle {
+            font-size: 28px;
+            color: #3E2723;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .modalText {
+            font-size: 18px;
+            color: #5D4037;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modalButton {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #1B5E20;
+            transition: all 0.1s;
+            margin: 5px;
+            border: 2px solid #81C784;
+        }
+
+        .modalButton:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .modalButton.restart {
+            background: linear-gradient(135deg, #FF5252, #C62828);
+            box-shadow: 0 4px 0 #8B0000;
+            border-color: #FF8A80;
+        }
+
+        .modalButton.secondary {
+            background: linear-gradient(135deg, #2196F3, #1565C0);
+            box-shadow: 0 4px 0 #0D47A1;
+            border-color: #64B5F6;
+        }
+
+        #levelIndicator {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Historia / intro / victoria (mismo estilo) */
+        #storyOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: 14px;
+        }
+
+        #storyOverlay.show {
+            display: flex;
+        }
+
+        .storyPanel {
+            background: linear-gradient(135deg, #FFF8E1, #FFE0B2);
+            border-radius: 28px;
+            max-width: 380px;
+            width: 100%;
+            border: 5px solid #FFD700;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            padding: 18px 20px 22px;
+            max-height: min(92vh, 640px);
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .storyPortrait {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .storyPortrait.small {
+            width: 88px;
+            height: 88px;
+        }
+
+        .storyDialog {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #8B6914;
+            border-radius: 16px;
+            padding: 12px 14px;
+            color: #3E2723;
+            font-size: 16px;
+            line-height: 1.45;
+            text-align: left;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
+            min-height: 3.2em;
+            white-space: pre-wrap;
+        }
+
+        .storyDialog.typewriter-cursor::after {
+            content: '▌';
+            animation: blink 0.9s step-end infinite;
+            color: #8B6914;
+            font-weight: bold;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .storyScroll {
+            width: 100%;
+            max-height: 220px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 8px;
+            padding-right: 4px;
+        }
+
+        .storyScroll .storyDialog {
+            min-height: auto;
+        }
+
+        .storyActions {
+            margin-top: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .storyUploadRow {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            align-items: stretch;
+        }
+
+        .storyUploadRow input[type="file"] {
+            display: none;
+        }
+
+        .storyRowPlayer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .storyRowPlayer img {
+            flex-shrink: 0;
+        }
+
+        .storyTextField {
+            flex: 1;
+            min-height: 44px;
+            border: 3px solid #8B6914;
+            border-radius: 12px;
+            padding: 8px 10px;
+            font-size: 15px;
+            color: #3E2723;
+            background: #fff;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .storyTextField:focus {
+            outline: 2px solid #FFA000;
+        }
+
+        .storyPanel input,
+        .storyPanel textarea {
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        /* Paso bienvenida: un solo cuadro con scroll (imagen + texto + botones) */
+        #introStepWelcome.active {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .welcomeMessagePanel {
+            width: 100%;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: min(calc(100dvh - 200px), 440px);
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #8B6914;
+            border-radius: 16px;
+            padding: 12px 12px 14px;
+            box-shadow: 2px 4px 10px rgba(0,0,0,0.15);
+            text-align: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .welcomePlantPreview {
+            margin-bottom: 10px;
+        }
+
+        .welcomePlantPreview img {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            max-height: 140px;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 2px solid rgba(139, 105, 20, 0.35);
+        }
+
+        .welcomeMessagePanel > .storyDialog {
+            width: 100%;
+            border: none;
+            box-shadow: none;
+            background: transparent;
+            padding: 4px 4px 10px;
+            min-height: auto;
+            text-align: left;
+        }
+
+        .welcomeMessagePanel .storyUploadRow {
+            margin-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .storyUploadRow .modalButton.is-hidden {
+            display: none;
+        }
+
+        .storyStep {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .storyStep.active {
+            display: flex;
+        }
+
+        #victoryOverlay .storyPortrait {
+            width: 130px;
+            height: 130px;
+        }
+
+        @media (max-width: 480px) {
+            .colorCircle {
+                width: 40px;
+                height: 40px;
+            }
+            
+            #characterContainer {
+                width: 55px;
+                height: 55px;
+            }
+            
+            #speechBubble {
+                left: 65px;
+                min-width: 120px;
+            }
+            
+            #speechText {
+                font-size: 12px;
+            }
+
+            .storyPortrait {
+                width: 100px;
+                height: 100px;
+            }
+
+            .storyDialog {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer" class="intro-active">
+        <div id="topPanel">
+            <div id="characterContainer">
+                <img id="characterImg" src="Personaje 1.png" alt="Personaje">
+                <div id="speechBubble">
+                    <div id="speechText">¡Tú puedes!</div>
+                </div>
+            </div>
+            <div id="gemDisplay">
+                <img id="gemImg" src="Gema 1.png" alt="Gema">
+                <div id="gemGlow"></div>
+            </div>
+        </div>
+        
+        <div id="levelIndicator">Nivel 1/5</div>
+        
+        <div id="gameArea">
+            <div id="powerRing">
+                <canvas id="powerCanvas"></canvas>
+            </div>
+            <div id="circlesContainer"></div>
+        </div>
+        
+        <button id="startButton">Iniciar Juego</button>
+    </div>
+    
+    <!-- Introducción al juego -->
+    <div id="storyOverlay" class="show" aria-live="polite">
+        <div class="storyPanel" id="introPanel">
+            <div class="storyStep active" id="introStepWelcome">
+                <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
+                <div class="welcomeMessagePanel">
+                    <div id="plantPreviewWrap" class="welcomePlantPreview" hidden>
+                        <img id="plantPreviewImg" alt="Planta mágica">
+                    </div>
+                    <div class="storyDialog" id="introWelcomeDialog"></div>
+                    <div class="storyUploadRow">
+                        <input type="file" id="magicPlantInput" accept="image/*">
+                        <button type="button" class="modalButton secondary" id="pickPlantBtn">Elegir imagen</button>
+                        <button type="button" class="modalButton is-hidden" id="loadPlantBtn">Cargar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="storyStep" id="introStepMalena">
+                <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
+                <div class="storyDialog" id="introMalenaQuestion">Princesa Malena, ¿estás lista para comenzar la aventura?</div>
+                <div class="storyRowPlayer">
+                    <img class="storyPortrait small" src="Princesa.png" alt="Princesa Malena">
+                    <input type="text" class="storyTextField" id="malenaInput" placeholder="Escribe aquí y pulsa Enviar" autocomplete="off">
+                </div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="malenaSendBtn">Enviar</button>
+                </div>
+            </div>
+
+            <div class="storyStep" id="introStepLeo">
+                <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
+                <div class="storyDialog" id="introLeoQuestion">Príncipe Leo, ¿estás listo para comenzar la aventura?</div>
+                <div class="storyRowPlayer">
+                    <img class="storyPortrait small" src="Príncipe.png" alt="Príncipe Leo">
+                    <input type="text" class="storyTextField" id="leoInput" placeholder="Escribe aquí y pulsa Enviar" autocomplete="off">
+                </div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="leoSendBtn">Enviar</button>
+                </div>
+            </div>
+
+            <div class="storyStep" id="introStepRules">
+                <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
+                <div class="storyScroll">
+                    <div class="storyDialog" id="introRulesDialog"></div>
+                </div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="beginGameBtn">Comenzar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para mensajes de nivel -->
+    <div id="messageModal" class="modal">
+        <div class="modalContent">
+            <div id="modalTitle" class="modalTitle">¡Felicidades!</div>
+            <div id="modalText" class="modalText">Has completado el nivel</div>
+            <button id="modalButton" class="modalButton">Continuar</button>
+        </div>
+    </div>
+
+    <!-- Victoria final (varios pasos) -->
+    <div id="victoryOverlay" class="modal">
+        <div class="storyPanel">
+            <div class="storyStep" id="victoryStepQueen">
+                <img class="storyPortrait" src="Reina.png" alt="Reina">
+                <div class="storyDialog" id="victoryQueenDialog"></div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="victoryQueenContinue">Continuar</button>
+                </div>
+            </div>
+            <div class="storyStep" id="victoryStepKing">
+                <img class="storyPortrait" src="Rey.png" alt="Rey">
+                <div class="storyDialog" id="victoryKingDialog"></div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton" id="victoryKingContinue">Continuar</button>
+                </div>
+            </div>
+            <div class="storyStep" id="victoryStepMentor">
+                <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
+                <div class="storyDialog" id="victoryMentorDialog"></div>
+                <div class="storyActions">
+                    <button type="button" class="modalButton restart" id="victoryFinishBtn">Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const INTRO_WELCOME_TEXT =
+            '¡Bienvenidos, príncipes!\n' +
+            'Nos honra que hayan aceptado este llamado. Los reyes han desaparecido y solo vuestra ayuda puede traerlos de regreso.\n' +
+            'Necesitamos forjar las 5 gemas mágicas para lograrlo.\n' +
+            'Cuéntenme, ¿ya tienen la planta mágica lista?';
+
+        const INTRO_RULES_TEXT =
+            'INSTRUCCIONES (léelas con calma)\n\n' +
+            '1) Objetivo: completar la barra dorada alrededor de la gema.\n\n' +
+            '2) Pulsa «Iniciar Juego». La gema brillará de un color: debes pulsar el círculo del mismo color.\n\n' +
+            '3) Si aciertas, la barra sube. Si te equivocas, la barra baja mucho.\n\n' +
+            '4) La barra también baja sola si tardas demasiado: ¡decide rápido!\n\n' +
+            '5) Si la barra llega a cero, repetirás el mismo nivel. No pasa nada: inténtalo otra vez.\n\n' +
+            '6) Hay 5 niveles y 5 gemas. Al terminar el último nivel, habrás ayudado a salvar el reino.\n\n' +
+            '¡Mucha suerte, príncipes!';
+
+        const VICTORY_QUEEN_TEXT =
+            '¡Gracias, mis príncipes! Su honor y valentía nos han permitido regresar.';
+
+        const VICTORY_KING_TEXT =
+            '¡Gracias, mis príncipes!, esto definitivamente demuestra que nuestro reino siempre estará en las mejores manos.';
+
+        const VICTORY_MENTOR_TEXT =
+            '¡Gracias, príncipes, han salvado el reino!\n' +
+            'Recuerden que lo más importante en este mundo es cuidar de la naturaleza, cuidar de su familia, cuidar de los suyos y cuidar de ustedes mismos. ¡Nos vemos pronto en otra nueva aventura!';
+
+        let typewriterTimer = null;
+        let typewriterCompleteCallback = null;
+
+        function cancelTypewriter() {
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+                typewriterTimer = null;
+            }
+        }
+
+        /**
+         * Efecto de texto letra a letra para diálogos de Personaje 1, Reina y Rey.
+         * @param {HTMLElement} el
+         * @param {string} fullText
+         * @param {number} msPerChar
+         * @param {() => void} [onDone]
+         */
+        function startTypewriter(el, fullText, msPerChar, onDone) {
+            cancelTypewriter();
+            if (!el) return;
+            el.classList.add('typewriter-cursor');
+            el.textContent = '';
+            let i = 0;
+            typewriterCompleteCallback = onDone || null;
+            typewriterTimer = setInterval(() => {
+                if (i < fullText.length) {
+                    el.textContent += fullText.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    el.classList.remove('typewriter-cursor');
+                    if (typewriterCompleteCallback) {
+                        const cb = typewriterCompleteCallback;
+                        typewriterCompleteCallback = null;
+                        cb();
+                    }
+                }
+            }, msPerChar);
+        }
+
+        function skipTypewriterToEnd(el, fullText) {
+            cancelTypewriter();
+            if (el) {
+                el.classList.remove('typewriter-cursor');
+                el.textContent = fullText;
+            }
+        }
+
+        // Configuración del juego
+        const config = {
+            levels: [
+                {
+                    colors: ['amarillo', 'rojo'],
+                    gemImage: 'Gema 1.png',
+                    glowDuration: 4000,
+                    hitsRequired: 8,
+                    circleCount: 2
+                },
+                {
+                    colors: ['amarillo', 'rojo', 'verde', 'azul'],
+                    gemImage: 'Gema 2.png',
+                    glowDuration: 3000,
+                    hitsRequired: 12,
+                    circleCount: 4
+                },
+                {
+                    colors: ['amarillo', 'rojo', 'verde', 'azul', 'morado', 'naranja'],
+                    gemImage: 'Gema 3.png',
+                    glowDuration: 3000,
+                    hitsRequired: 16,
+                    circleCount: 6
+                },
+                {
+                    colors: ['amarillo', 'rojo', 'verde', 'azul', 'morado', 'naranja', 'gris', 'café'],
+                    gemImage: 'Gema 4.png',
+                    glowDuration: 2000,
+                    hitsRequired: 20,
+                    circleCount: 8
+                },
+                {
+                    colors: ['amarillo', 'rojo', 'verde', 'azul', 'morado', 'naranja', 'gris', 'café', 'negro', 'blanco'],
+                    gemImage: 'Gema 5.png',
+                    glowDuration: 2000,
+                    hitsRequired: 25,
+                    circleCount: 10
+                }
+            ],
+            wrongHitPenalty: 10,
+            idleDecreaseBase: 0.3,
+            idleDecreasePerLevel: 0.08
+        };
+
+        let gameState = {
+            currentLevel: 0,
+            power: 0,
+            isPlaying: false,
+            currentTargetColor: null,
+            /** Veces seguidas que el objetivo elegido ha sido el mismo color (máx. 2). */
+            targetSameColorStreak: 0,
+            glowTimeout: null,
+            gameLoopInterval: null,
+            speechMessages: [
+                "¡Tú puedes!",
+                "¡Vas muy bien!",
+                "¡Podemos lograrlo!",
+                "¡Estamos muy cerca!",
+                "¡No pierdas la concentración!",
+                "¡Excelente golpe!",
+                "¡Sigue así!",
+                "¡Casi lo tienes!"
+            ],
+            hitsInLevel: 0,
+            introFinished: false
+        };
+
+        const canvas = document.getElementById('powerCanvas');
+        const ctx = canvas.getContext('2d');
+        const circlesContainer = document.getElementById('circlesContainer');
+        const startButton = document.getElementById('startButton');
+        const gemImg = document.getElementById('gemImg');
+        const gemGlow = document.getElementById('gemGlow');
+        const levelIndicator = document.getElementById('levelIndicator');
+        const speechBubble = document.getElementById('speechBubble');
+        const speechText = document.getElementById('speechText');
+        const messageModal = document.getElementById('messageModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        const modalButton = document.getElementById('modalButton');
+        const gameContainer = document.getElementById('gameContainer');
+        const storyOverlay = document.getElementById('storyOverlay');
+        const introWelcomeDialog = document.getElementById('introWelcomeDialog');
+        const plantPreviewWrap = document.getElementById('plantPreviewWrap');
+        const plantPreviewImg = document.getElementById('plantPreviewImg');
+        const magicPlantInput = document.getElementById('magicPlantInput');
+        const pickPlantBtn = document.getElementById('pickPlantBtn');
+        const loadPlantBtn = document.getElementById('loadPlantBtn');
+        let plantPreviewObjectUrl = null;
+        const introStepWelcome = document.getElementById('introStepWelcome');
+        const introStepMalena = document.getElementById('introStepMalena');
+        const introStepLeo = document.getElementById('introStepLeo');
+        const introStepRules = document.getElementById('introStepRules');
+        const introRulesDialog = document.getElementById('introRulesDialog');
+        const malenaInput = document.getElementById('malenaInput');
+        const leoInput = document.getElementById('leoInput');
+        const malenaSendBtn = document.getElementById('malenaSendBtn');
+        const leoSendBtn = document.getElementById('leoSendBtn');
+        const beginGameBtn = document.getElementById('beginGameBtn');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryStepQueen = document.getElementById('victoryStepQueen');
+        const victoryStepKing = document.getElementById('victoryStepKing');
+        const victoryStepMentor = document.getElementById('victoryStepMentor');
+        const victoryQueenDialog = document.getElementById('victoryQueenDialog');
+        const victoryKingDialog = document.getElementById('victoryKingDialog');
+        const victoryMentorDialog = document.getElementById('victoryMentorDialog');
+        const victoryQueenContinue = document.getElementById('victoryQueenContinue');
+        const victoryKingContinue = document.getElementById('victoryKingContinue');
+        const victoryFinishBtn = document.getElementById('victoryFinishBtn');
+
+        const colorMap = {
+            'amarillo': '#FFD700',
+            'rojo': '#FF4444',
+            'verde': '#4CAF50',
+            'azul': '#2196F3',
+            'morado': '#9C27B0',
+            'naranja': '#FF9800',
+            'gris': '#9E9E9E',
+            'café': '#8B4513',
+            'negro': '#212121',
+            'blanco': '#FAFAFA'
+        };
+
+        function setIntroStep(step) {
+            introStepWelcome.classList.toggle('active', step === 'welcome');
+            introStepMalena.classList.toggle('active', step === 'malena');
+            introStepLeo.classList.toggle('active', step === 'leo');
+            introStepRules.classList.toggle('active', step === 'rules');
+        }
+
+        function revokePlantPreviewUrl() {
+            if (plantPreviewObjectUrl) {
+                URL.revokeObjectURL(plantPreviewObjectUrl);
+                plantPreviewObjectUrl = null;
+            }
+        }
+
+        function resetWelcomePlantUI() {
+            revokePlantPreviewUrl();
+            magicPlantInput.value = '';
+            plantPreviewImg.removeAttribute('src');
+            plantPreviewWrap.hidden = true;
+            loadPlantBtn.classList.add('is-hidden');
+        }
+
+        function showIntroWelcome() {
+            gameState.introFinished = false;
+            storyOverlay.classList.add('show');
+            gameContainer.classList.add('intro-active');
+            setIntroStep('welcome');
+            resetWelcomePlantUI();
+            startTypewriter(introWelcomeDialog, INTRO_WELCOME_TEXT, 22, null);
+        }
+
+        function bindIntroWelcomeTapToSkip() {
+            const skip = () => {
+                if (introStepWelcome.classList.contains('active')) {
+                    skipTypewriterToEnd(introWelcomeDialog, INTRO_WELCOME_TEXT);
+                }
+            };
+            introWelcomeDialog.addEventListener('click', skip);
+        }
+
+        function showIntroRulesTypewriter() {
+            setIntroStep('rules');
+            introRulesDialog.textContent = '';
+            startTypewriter(introRulesDialog, INTRO_RULES_TEXT, 16, () => {
+                const scrollBox = introRulesDialog.parentElement;
+                if (scrollBox) scrollBox.scrollTop = scrollBox.scrollHeight;
+            });
+        }
+
+        function finishIntroAndStartGame() {
+            cancelTypewriter();
+            storyOverlay.classList.remove('show');
+            gameContainer.classList.remove('intro-active');
+            gameState.introFinished = true;
+            loadLevel(0);
+            showSpeech("¡Comencemos a forjar!");
+        }
+
+        function resetVictorySteps() {
+            victoryStepQueen.classList.remove('active');
+            victoryStepKing.classList.remove('active');
+            victoryStepMentor.classList.remove('active');
+        }
+
+        function showVictoryQueen() {
+            resetVictorySteps();
+            victoryOverlay.classList.add('show');
+            victoryStepQueen.classList.add('active');
+            victoryQueenContinue.disabled = true;
+            startTypewriter(victoryQueenDialog, VICTORY_QUEEN_TEXT, 28, () => {
+                victoryQueenContinue.disabled = false;
+            });
+        }
+
+        function showVictoryKing() {
+            resetVictorySteps();
+            victoryStepKing.classList.add('active');
+            victoryKingContinue.disabled = true;
+            startTypewriter(victoryKingDialog, VICTORY_KING_TEXT, 26, () => {
+                victoryKingContinue.disabled = false;
+            });
+        }
+
+        function showVictoryMentor() {
+            resetVictorySteps();
+            victoryStepMentor.classList.add('active');
+            victoryFinishBtn.disabled = true;
+            startTypewriter(victoryMentorDialog, VICTORY_MENTOR_TEXT, 22, () => {
+                victoryFinishBtn.disabled = false;
+            });
+        }
+
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            setupEventListeners();
+            bindIntroWelcomeTapToSkip();
+            loadLevel(0);
+            showIntroWelcome();
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('powerRing');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            drawPowerRing();
+        }
+
+        function drawPowerRing() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) * 0.42;
+            const lineWidth = Math.max(15, radius * 0.15);
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+            
+            if (gameState.power > 0) {
+                const startAngle = -Math.PI / 2;
+                const endAngle = startAngle + (gameState.power / 100) * (Math.PI * 2);
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                
+                const gradient = ctx.createConicGradient(startAngle, centerX, centerY);
+                gradient.addColorStop(0, '#FFD700');
+                gradient.addColorStop(0.5, '#FFA500');
+                gradient.addColorStop(1, '#FFD700');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        }
+
+        function loadLevel(levelIndex) {
+            gameState.currentLevel = levelIndex;
+            gameState.power = 0;
+            gameState.hitsInLevel = 0;
+            gameState.isPlaying = false;
+            gameState.currentTargetColor = null;
+            gameState.targetSameColorStreak = 0;
+            
+            const level = config.levels[levelIndex];
+            gemImg.src = level.gemImage;
+            levelIndicator.textContent = `Nivel ${levelIndex + 1}/5`;
+            
+            createCircles(level.colors, level.circleCount);
+            
+            drawPowerRing();
+            startButton.disabled = false;
+            startButton.textContent = 'Iniciar Juego';
+            
+            clearTimeout(gameState.glowTimeout);
+            gemGlow.classList.remove('active');
+        }
+
+        function createCircles(colors, count) {
+            circlesContainer.innerHTML = '';
+            const centerX = 50;
+            const centerY = 50;
+            const radius = 35;
+            
+            colors.slice(0, count).forEach((color, index) => {
+                const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                const circle = document.createElement('div');
+                circle.className = 'colorCircle';
+                circle.style.backgroundColor = colorMap[color];
+                circle.style.left = `calc(${x}% - 25px)`;
+                circle.style.top = `calc(${y}% - 25px)`;
+                circle.dataset.color = color;
+                
+                circle.addEventListener('click', () => handleCircleClick(color));
+                circlesContainer.appendChild(circle);
+            });
+        }
+
+        function getProgressPerHit(level) {
+            return 100 / level.hitsRequired;
+        }
+
+        function getIdleDecreaseForCurrentLevel() {
+            return config.idleDecreaseBase + gameState.currentLevel * config.idleDecreasePerLevel;
+        }
+
+        function handleCircleClick(color) {
+            if (!gameState.isPlaying) return;
+            
+            const isCorrect = gameState.currentTargetColor === color;
+            const level = config.levels[gameState.currentLevel];
+            
+            if (isCorrect) {
+                const step = getProgressPerHit(level);
+                gameState.power = Math.min(100, gameState.power + step);
+                gameState.hitsInLevel++;
+                
+                if (Math.random() > 0.5) {
+                    showRandomSpeech();
+                }
+                
+                if (gameState.power >= 100) {
+                    completeLevel();
+                    return;
+                }
+                
+                clearTimeout(gameState.glowTimeout);
+                setRandomTarget();
+            } else {
+                gameState.power = Math.max(0, gameState.power - config.wrongHitPenalty);
+                showSpeech("¡Cuidado! Golpe incorrecto", 1500);
+                
+                if (gameState.power <= 0) {
+                    resetLevel();
+                }
+            }
+            
+            drawPowerRing();
+        }
+
+        function setRandomTarget() {
+            const level = config.levels[gameState.currentLevel];
+            const prev = gameState.currentTargetColor;
+            const streak = gameState.targetSameColorStreak;
+
+            let pool = level.colors;
+            if (prev != null && streak >= 2) {
+                pool = level.colors.filter((c) => c !== prev);
+            }
+            if (pool.length === 0) {
+                pool = level.colors;
+            }
+
+            const newColor = pool[Math.floor(Math.random() * pool.length)];
+
+            if (prev != null && newColor === prev) {
+                gameState.targetSameColorStreak = streak + 1;
+            } else {
+                gameState.targetSameColorStreak = 1;
+            }
+            gameState.currentTargetColor = newColor;
+
+            gemGlow.style.backgroundColor = colorMap[newColor];
+            gemGlow.style.color = colorMap[newColor];
+            gemGlow.classList.add('active');
+
+            gameState.glowTimeout = setTimeout(() => {
+                if (gameState.isPlaying) {
+                    setRandomTarget();
+                }
+            }, level.glowDuration);
+        }
+
+        function completeLevel() {
+            gameState.isPlaying = false;
+            clearTimeout(gameState.glowTimeout);
+            gemGlow.classList.remove('active');
+            
+            const level = config.levels[gameState.currentLevel];
+            
+            if (gameState.currentLevel === 4) {
+                showVictoryQueen();
+            } else {
+                modalTitle.textContent = '¡Nivel Completado!';
+                modalText.textContent = `¡Has forjado la ${level.gemImage.replace('.png', '')}! Avanzas al nivel ${gameState.currentLevel + 2}.`;
+                messageModal.classList.add('show');
+                
+                modalButton.onclick = () => {
+                    messageModal.classList.remove('show');
+                    loadLevel(gameState.currentLevel + 1);
+                };
+            }
+            
+            startButton.disabled = false;
+            startButton.textContent = 'Iniciar Juego';
+        }
+
+        function resetLevel() {
+            gameState.isPlaying = false;
+            clearTimeout(gameState.glowTimeout);
+            gemGlow.classList.remove('active');
+            
+            modalTitle.textContent = '¡Barra vacía!';
+            modalText.textContent = 'La barra de poder se ha vaciado. ¿Quieres intentarlo de nuevo?';
+            messageModal.classList.add('show');
+            
+            modalButton.onclick = () => {
+                messageModal.classList.remove('show');
+                loadLevel(gameState.currentLevel);
+            };
+            
+            startButton.disabled = false;
+            startButton.textContent = 'Iniciar Juego';
+        }
+
+        function showRandomSpeech() {
+            const randomMsg = gameState.speechMessages[Math.floor(Math.random() * gameState.speechMessages.length)];
+            showSpeech(randomMsg, 2000);
+        }
+
+        function showSpeech(message, duration = 2000) {
+            speechText.textContent = message;
+            speechBubble.classList.add('show');
+            
+            setTimeout(() => {
+                speechBubble.classList.remove('show');
+            }, duration);
+        }
+
+        function startLevel() {
+            if (!gameState.introFinished) return;
+            if (gameState.isPlaying) return;
+            
+            const level = config.levels[gameState.currentLevel];
+            gameState.isPlaying = true;
+            const cushion = Math.min(5, getProgressPerHit(level) * 2);
+            gameState.power = cushion;
+            gameState.hitsInLevel = 0;
+            startButton.disabled = true;
+            
+            showSpeech("¡A forjar la gema!", 2000);
+            setRandomTarget();
+            
+            if (gameState.gameLoopInterval) {
+                clearInterval(gameState.gameLoopInterval);
+            }
+            
+            gameState.gameLoopInterval = setInterval(() => {
+                if (gameState.isPlaying) {
+                    const drain = getIdleDecreaseForCurrentLevel();
+                    gameState.power = Math.max(0, gameState.power - drain);
+                    drawPowerRing();
+                    
+                    if (gameState.power <= 0) {
+                        resetLevel();
+                    }
+                }
+            }, 100);
+        }
+
+        function setupEventListeners() {
+            startButton.addEventListener('click', startLevel);
+
+            pickPlantBtn.addEventListener('click', () => magicPlantInput.click());
+
+            magicPlantInput.addEventListener('change', () => {
+                revokePlantPreviewUrl();
+                if (!magicPlantInput.files || magicPlantInput.files.length === 0) {
+                    plantPreviewImg.removeAttribute('src');
+                    plantPreviewWrap.hidden = true;
+                    loadPlantBtn.classList.add('is-hidden');
+                    return;
+                }
+                const file = magicPlantInput.files[0];
+                plantPreviewObjectUrl = URL.createObjectURL(file);
+                plantPreviewImg.src = plantPreviewObjectUrl;
+                plantPreviewWrap.hidden = false;
+                loadPlantBtn.classList.remove('is-hidden');
+            });
+
+            loadPlantBtn.addEventListener('click', () => {
+                if (!magicPlantInput.files || magicPlantInput.files.length === 0) {
+                    return;
+                }
+                resetWelcomePlantUI();
+                skipTypewriterToEnd(introWelcomeDialog, INTRO_WELCOME_TEXT);
+                setIntroStep('malena');
+                malenaInput.value = '';
+                malenaInput.focus();
+            });
+
+            malenaSendBtn.addEventListener('click', () => {
+                setIntroStep('leo');
+                leoInput.value = '';
+                leoInput.focus();
+            });
+
+            leoSendBtn.addEventListener('click', () => {
+                showIntroRulesTypewriter();
+            });
+
+            beginGameBtn.addEventListener('click', () => {
+                skipTypewriterToEnd(introRulesDialog, INTRO_RULES_TEXT);
+                finishIntroAndStartGame();
+            });
+
+            victoryQueenContinue.addEventListener('click', () => {
+                if (victoryQueenContinue.disabled) {
+                    skipTypewriterToEnd(victoryQueenDialog, VICTORY_QUEEN_TEXT);
+                    victoryQueenContinue.disabled = false;
+                    return;
+                }
+                cancelTypewriter();
+                showVictoryKing();
+            });
+
+            victoryKingContinue.addEventListener('click', () => {
+                if (victoryKingContinue.disabled) {
+                    skipTypewriterToEnd(victoryKingDialog, VICTORY_KING_TEXT);
+                    victoryKingContinue.disabled = false;
+                    return;
+                }
+                cancelTypewriter();
+                showVictoryMentor();
+            });
+
+            victoryFinishBtn.addEventListener('click', () => {
+                if (victoryFinishBtn.disabled) {
+                    skipTypewriterToEnd(victoryMentorDialog, VICTORY_MENTOR_TEXT);
+                    victoryFinishBtn.disabled = false;
+                    return;
+                }
+                cancelTypewriter();
+                victoryOverlay.classList.remove('show');
+                resetVictorySteps();
+                loadLevel(0);
+                showIntroWelcome();
+            });
+
+            introRulesDialog.addEventListener('click', () => {
+                if (introStepRules.classList.contains('active')) {
+                    skipTypewriterToEnd(introRulesDialog, INTRO_RULES_TEXT);
+                }
+            });
+
+            victoryQueenDialog.addEventListener('click', () => {
+                if (victoryStepQueen.classList.contains('active')) {
+                    skipTypewriterToEnd(victoryQueenDialog, VICTORY_QUEEN_TEXT);
+                    victoryQueenContinue.disabled = false;
+                }
+            });
+            victoryKingDialog.addEventListener('click', () => {
+                if (victoryStepKing.classList.contains('active')) {
+                    skipTypewriterToEnd(victoryKingDialog, VICTORY_KING_TEXT);
+                    victoryKingContinue.disabled = false;
+                }
+            });
+            victoryMentorDialog.addEventListener('click', () => {
+                if (victoryStepMentor.classList.contains('active')) {
+                    skipTypewriterToEnd(victoryMentorDialog, VICTORY_MENTOR_TEXT);
+                    victoryFinishBtn.disabled = false;
+                }
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if (e.target.closest('#gameArea')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+        }
+
+        init();
+    </script>
+</body>
+</html>
