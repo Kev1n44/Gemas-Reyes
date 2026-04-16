@@ -13,49 +13,64 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html {
+            height: 100%;
+        }
+
         body {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
             overflow: hidden;
             position: fixed;
+            inset: 0;
             font-family: 'Segoe UI', 'Arial', sans-serif;
         }
 
         #gameContainer {
             width: 100%;
             height: 100%;
+            max-height: 100%;
+            min-height: 0;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            padding: max(4px, env(safe-area-inset-top, 0px)) 10px max(6px, env(safe-area-inset-bottom, 0px)) 10px;
             background-image: url('Fondo.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
         }
 
-        #gameContainer.intro-active #topPanel,
-        #gameContainer.intro-active #levelIndicator,
-        #gameContainer.intro-active #gameArea,
-        #gameContainer.intro-active #startButton {
+        #gameContainer.intro-active .playfield {
             visibility: hidden;
             pointer-events: none;
         }
 
-        /* Panel superior con personaje y gema */
-        #topPanel {
-            position: absolute;
-            top: 10px;
-            left: 0;
-            right: 0;
+        .playfield {
+            flex: 1 1 0;
+            min-height: 0;
             display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        /* Gema arriba, centrada */
+        #hudGemRow {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: center;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px 15px;
+            padding: 2px 0 4px;
             z-index: 10;
         }
 
         #characterContainer {
             position: relative;
-            width: 70px;
-            height: 70px;
+            width: 64px;
+            height: 64px;
             flex-shrink: 0;
         }
 
@@ -65,28 +80,44 @@
             object-fit: contain;
         }
 
+        /* Personaje + mensaje entre nivel y zona de juego (no encima de la gema) */
+        #mentorStrip {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 100%;
+            padding: 2px 6px 8px;
+            box-sizing: border-box;
+            z-index: 11;
+        }
+
         #speechBubble {
-            position: absolute;
-            left: 80px;
-            top: 0;
+            position: relative;
+            left: auto;
+            top: auto;
+            flex: 1 1 auto;
+            min-width: 0;
+            max-width: min(300px, calc(100vw - 96px));
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 8px 12px;
-            min-width: 140px;
-            max-width: 180px;
             border: 3px solid #8B6914;
             box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
-            z-index: 11;
         }
 
         #speechBubble::before {
             content: '';
             position: absolute;
             left: -12px;
-            top: 15px;
+            top: 50%;
+            transform: translateY(-50%);
             border-width: 8px 12px 8px 0;
             border-style: solid;
             border-color: transparent #8B6914 transparent transparent;
@@ -97,18 +128,18 @@
         }
 
         #speechText {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             color: #3E2723;
             text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
         }
 
         #gemDisplay {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
+            position: relative;
+            width: 54px;
+            height: 54px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -125,8 +156,8 @@
 
         #gemGlow {
             position: absolute;
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             opacity: 0;
             transition: opacity 0.1s;
@@ -138,20 +169,28 @@
             opacity: 0.8;
         }
 
-        /* Área central con barra circular y círculos */
+        /* Zona central: ocupa el espacio libre entre HUD y botón */
+        #gameStage {
+            flex: 1 1 0;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 0 4px;
+            z-index: 5;
+        }
+
         #gameArea {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: min(85vw, 85vh);
-            height: min(85vw, 85vh);
-            max-width: 400px;
-            max-height: 400px;
+            position: relative;
+            width: min(76vw, 300px);
+            max-width: 100%;
+            aspect-ratio: 1 / 1;
+            height: auto;
+            max-height: min(100%, 76vw, 52svh);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 5;
         }
 
         #powerRing {
@@ -180,8 +219,9 @@
 
         .colorCircle {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            box-sizing: border-box;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
             cursor: pointer;
             pointer-events: auto;
@@ -196,30 +236,31 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* Botón iniciar */
+        /* Botón iniciar: siempre visible dentro del viewport */
         #startButton {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 15px 40px;
+            position: relative;
+            flex: 0 0 auto;
+            align-self: center;
+            margin: 4px auto 0;
+            padding: 11px 28px;
             background: linear-gradient(135deg, #FFD700, #FFA500);
-            border: 4px solid #8B6914;
+            border: 3px solid #8B6914;
             border-radius: 50px;
             color: #3E2723;
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             z-index: 15;
-            box-shadow: 0 6px 0 #6B4F1A, 0 8px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 0 #6B4F1A, 0 6px 12px rgba(0,0,0,0.25);
             transition: all 0.1s;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
+            max-width: calc(100vw - 24px);
         }
 
         #startButton:active {
-            transform: translateX(-50%) translateY(4px);
-            box-shadow: 0 2px 0 #6B4F1A, 0 4px 10px rgba(0,0,0,0.3);
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #6B4F1A, 0 3px 8px rgba(0,0,0,0.25);
         }
 
         #startButton:disabled {
@@ -304,18 +345,18 @@
         }
 
         #levelIndicator {
-            position: absolute;
-            top: 90px;
-            left: 50%;
-            transform: translateX(-50%);
+            position: relative;
+            align-self: center;
+            margin: 0 auto;
             background: rgba(0,0,0,0.5);
             color: white;
-            padding: 5px 20px;
+            padding: 4px 16px;
             border-radius: 20px;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             z-index: 10;
             backdrop-filter: blur(5px);
+            flex: 0 0 auto;
         }
 
         /* Historia / intro / victoria (mismo estilo) */
@@ -538,22 +579,27 @@
 
         @media (max-width: 480px) {
             .colorCircle {
-                width: 40px;
-                height: 40px;
+                width: 52px;
+                height: 52px;
             }
-            
+
             #characterContainer {
-                width: 55px;
-                height: 55px;
+                width: 56px;
+                height: 56px;
             }
-            
-            #speechBubble {
-                left: 65px;
-                min-width: 120px;
-            }
-            
+
             #speechText {
                 font-size: 12px;
+            }
+
+            #gemDisplay {
+                width: 50px;
+                height: 50px;
+            }
+
+            #gameArea {
+                width: min(74vw, 280px);
+                max-height: min(100%, 74vw, 50svh);
             }
 
             .storyPortrait {
@@ -569,29 +615,36 @@
 </head>
 <body>
     <div id="gameContainer" class="intro-active">
-        <div id="topPanel">
-            <div id="characterContainer">
-                <img id="characterImg" src="Personaje 1.png" alt="Personaje">
+        <div class="playfield">
+            <div id="hudGemRow">
+                <div id="gemDisplay">
+                    <img id="gemImg" src="Gema 1.png" alt="Gema">
+                    <div id="gemGlow"></div>
+                </div>
+            </div>
+
+            <div id="levelIndicator">Nivel 1/5</div>
+
+            <div id="mentorStrip">
+                <div id="characterContainer">
+                    <img id="characterImg" src="Personaje 1.png" alt="Personaje">
+                </div>
                 <div id="speechBubble">
                     <div id="speechText">¡Tú puedes!</div>
                 </div>
             </div>
-            <div id="gemDisplay">
-                <img id="gemImg" src="Gema 1.png" alt="Gema">
-                <div id="gemGlow"></div>
+
+            <div id="gameStage">
+                <div id="gameArea">
+                    <div id="powerRing">
+                        <canvas id="powerCanvas"></canvas>
+                    </div>
+                    <div id="circlesContainer"></div>
+                </div>
             </div>
+
+            <button type="button" id="startButton">Iniciar Juego</button>
         </div>
-        
-        <div id="levelIndicator">Nivel 1/5</div>
-        
-        <div id="gameArea">
-            <div id="powerRing">
-                <canvas id="powerCanvas"></canvas>
-            </div>
-            <div id="circlesContainer"></div>
-        </div>
-        
-        <button id="startButton">Iniciar Juego</button>
     </div>
     
     <!-- Introducción al juego -->
@@ -977,7 +1030,11 @@
 
         function init() {
             resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                const level = config.levels[gameState.currentLevel];
+                createCircles(level.colors, level.circleCount);
+            });
             setupEventListeners();
             bindIntroWelcomeTapToSkip();
             loadLevel(0);
@@ -1046,11 +1103,20 @@
             gemGlow.classList.remove('active');
         }
 
+        function getColorCircleSizePx() {
+            return window.matchMedia('(max-width: 480px)').matches ? 52 : 56;
+        }
+
+        /** Porcentaje de radio desde el centro: más bajo = círculos más al centro, lejos del anillo */
+        const COLOR_ORBIT_RADIUS_PCT = 26;
+
         function createCircles(colors, count) {
             circlesContainer.innerHTML = '';
             const centerX = 50;
             const centerY = 50;
-            const radius = 35;
+            const radius = COLOR_ORBIT_RADIUS_PCT;
+            const circlePx = getColorCircleSizePx();
+            const half = circlePx / 2;
             
             colors.slice(0, count).forEach((color, index) => {
                 const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
@@ -1060,8 +1126,10 @@
                 const circle = document.createElement('div');
                 circle.className = 'colorCircle';
                 circle.style.backgroundColor = colorMap[color];
-                circle.style.left = `calc(${x}% - 25px)`;
-                circle.style.top = `calc(${y}% - 25px)`;
+                circle.style.width = circlePx + 'px';
+                circle.style.height = circlePx + 'px';
+                circle.style.left = `calc(${x}% - ${half}px)`;
+                circle.style.top = `calc(${y}% - ${half}px)`;
                 circle.dataset.color = color;
                 
                 circle.addEventListener('click', () => handleCircleClick(color));
@@ -1073,8 +1141,10 @@
             return 100 / level.hitsRequired;
         }
 
+        /** Drenaje por tiempo: sube del 1 al 3; a partir del nivel 3 se mantiene el mismo valor que en nivel 3. */
         function getIdleDecreaseForCurrentLevel() {
-            return config.idleDecreaseBase + gameState.currentLevel * config.idleDecreasePerLevel;
+            const levelIndexForDrain = Math.min(gameState.currentLevel, 2);
+            return config.idleDecreaseBase + levelIndexForDrain * config.idleDecreasePerLevel;
         }
 
         function handleCircleClick(color) {
