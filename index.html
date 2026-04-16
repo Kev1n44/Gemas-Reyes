@@ -183,11 +183,11 @@
 
         #gameArea {
             position: relative;
-            width: min(76vw, 300px);
+            width: min(80vw, 328px);
             max-width: 100%;
             aspect-ratio: 1 / 1;
             height: auto;
-            max-height: min(100%, 76vw, 52svh);
+            max-height: min(100%, 80vw, 56svh);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -598,8 +598,8 @@
             }
 
             #gameArea {
-                width: min(74vw, 280px);
-                max-height: min(100%, 74vw, 50svh);
+                width: min(78vw, 300px);
+                max-height: min(100%, 78vw, 54svh);
             }
 
             .storyPortrait {
@@ -1053,8 +1053,10 @@
             
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            const radius = Math.min(canvas.width, canvas.height) * 0.42;
-            const lineWidth = Math.max(15, radius * 0.15);
+            const minSide = Math.min(canvas.width, canvas.height);
+            /* Anillo un poco más grande dentro del canvas (más zona útil para los círculos) */
+            const radius = minSide * 0.465;
+            const lineWidth = Math.max(16, radius * 0.168);
             
             ctx.beginPath();
             ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -1107,8 +1109,8 @@
             return window.matchMedia('(max-width: 480px)').matches ? 52 : 56;
         }
 
-        /** Porcentaje de radio desde el centro: más bajo = círculos más al centro, lejos del anillo */
-        const COLOR_ORBIT_RADIUS_PCT = 26;
+        /** Distancia al centro (% del ancho del área): un poco mayor = más hueco entre círculos y más fácil de pulsar */
+        const COLOR_ORBIT_RADIUS_PCT = 28;
 
         function createCircles(colors, count) {
             circlesContainer.innerHTML = '';
@@ -1141,9 +1143,9 @@
             return 100 / level.hitsRequired;
         }
 
-        /** Drenaje por tiempo: sube del 1 al 3; a partir del nivel 3 se mantiene el mismo valor que en nivel 3. */
+        /** Drenaje por tiempo: nivel 1 más suave; niveles 2–5 comparten el drenaje del nivel 2 (0.38 con la config actual). */
         function getIdleDecreaseForCurrentLevel() {
-            const levelIndexForDrain = Math.min(gameState.currentLevel, 2);
+            const levelIndexForDrain = Math.min(gameState.currentLevel, 1);
             return config.idleDecreaseBase + levelIndexForDrain * config.idleDecreasePerLevel;
         }
 
