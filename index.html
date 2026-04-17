@@ -750,6 +750,7 @@
                 <img class="storyPortrait" src="Personaje 1.png" alt="Guía">
                 <div class="storyDialog" id="victoryMentorDialog"></div>
                 <div class="storyActions">
+                    <button type="button" class="modalButton secondary" id="victoryDownloadRelicBtn" disabled>Descargar reliquia</button>
                     <button type="button" class="modalButton restart" id="victoryFinishBtn">Finalizar</button>
                 </div>
             </div>
@@ -765,13 +766,13 @@
 
         const INTRO_RULES_TEXT =
             'INSTRUCCIONES (léelas con calma)\n\n' +
-            'Objetivo: completar la barra de poder, ubicada alrededor de los círculos de colores.\n\n' +
+            'Objetivo: llenar la barra de poder, ubicada alrededor de los círculos de colores.\n\n' +
             '1) Deberán trabajar en equipo para acordar qué círculos presionar en el momento correcto.\n\n' +
-            '2) Pulsen el botón «Iniciar Juego». La gema en la parte de arriba, brillará de un color específico: debes pulsar el círculo del mismo color para ir llenando la barra de poder.\n\n' +
-            '3) Si aciertas, la barra sube. Si te equivocas, la barra baja mucho.\n\n' +
-            '4) La barra también baja sola si tardas demasiado: ¡decide rápido!\n\n' +
-            '5) Si la barra llega a cero, repetirás el mismo nivel. No pasa nada: inténtalo otra vez.\n\n' +
-            '6) Hay 5 niveles y 5 gemas. Al terminar el último nivel, salvarás a los Duques y finalmente el reino.\n\n' +
+            '2) Pulsen el botón «Iniciar Juego». La gema en la parte de arriba, brillará de un color específico: deben pulsar el círculo del mismo color para ir llenando la barra de poder.\n\n' +
+            '3) Si aciertan, la barra sube. Si se equivocan, la barra baja mucho.\n\n' +
+            '4) La barra también baja sola si tardan demasiado: ¡decidan rápido!\n\n' +
+            '5) Si la barra llega a cero, repetirán el mismo nivel. No pasa nada: inténtenlo otra vez.\n\n' +
+            '6) Hay 5 niveles y 5 gemas. Al terminar el último nivel, salvarán a los Duques y finalmente al reino.\n\n' +
             '¡Mucha suerte, príncipes!';
 
         const VICTORY_PRELUDE_TEXT =
@@ -954,6 +955,7 @@
         const victoryQueenContinue = document.getElementById('victoryQueenContinue');
         const victoryKingContinue = document.getElementById('victoryKingContinue');
         const victoryFinishBtn = document.getElementById('victoryFinishBtn');
+        const victoryDownloadRelicBtn = document.getElementById('victoryDownloadRelicBtn');
         const introMalenaQuestion = document.getElementById('introMalenaQuestion');
         const introLeoQuestion = document.getElementById('introLeoQuestion');
 
@@ -1082,9 +1084,21 @@
             resetVictorySteps();
             victoryStepMentor.classList.add('active');
             victoryFinishBtn.disabled = true;
+            victoryDownloadRelicBtn.disabled = true;
             startTypewriter(victoryMentorDialog, VICTORY_MENTOR_TEXT, 22, () => {
                 victoryFinishBtn.disabled = false;
+                victoryDownloadRelicBtn.disabled = false;
             });
+        }
+
+        function downloadReliquiaImage() {
+            const a = document.createElement('a');
+            a.href = 'Reliquia.png';
+            a.download = 'Reliquia.png';
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         function init() {
@@ -1447,10 +1461,18 @@
                 showVictoryMentor();
             });
 
+            victoryDownloadRelicBtn.addEventListener('click', () => {
+                if (victoryDownloadRelicBtn.disabled) {
+                    return;
+                }
+                downloadReliquiaImage();
+            });
+
             victoryFinishBtn.addEventListener('click', () => {
                 if (victoryFinishBtn.disabled) {
                     skipTypewriterToEnd(victoryMentorDialog, VICTORY_MENTOR_TEXT);
                     victoryFinishBtn.disabled = false;
+                    victoryDownloadRelicBtn.disabled = false;
                     return;
                 }
                 cancelTypewriter();
@@ -1494,6 +1516,7 @@
                 if (victoryStepMentor.classList.contains('active')) {
                     skipTypewriterToEnd(victoryMentorDialog, VICTORY_MENTOR_TEXT);
                     victoryFinishBtn.disabled = false;
+                    victoryDownloadRelicBtn.disabled = false;
                 }
             });
 
